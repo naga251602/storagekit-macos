@@ -1,0 +1,41 @@
+name: Bug Report
+description: Report unexpected StorageKit behavior (do not paste private paths or secrets)
+title: '[Bug] '
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: 'Never include private file paths, usernames, tokens, or contents of deleted files.'
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version and hardware
+      placeholder: 'macOS 15, Apple M4 Pro'
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: StorageKit version
+      placeholder: '5.0.0'
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Reproduction steps without sensitive information
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true

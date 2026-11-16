@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scanner-tests:
+    name: Scanner and UI regression tests (Linux)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check shell script syntax
+        run: |
+          for script in build.sh scripts/*.sh; do bash -n "$script"; done
+      - name: Unit tests (temporary fixtures only; no deletion)
+        run: python3 -m unittest discover -s tests -v
+
+  macos-build:
+    name: Native macOS build and bundle verification (arm64)
+    needs: scanner-tests
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test scanner, layout contract and Swift syntax
+        run: ./scripts/test.sh
+      - name: Build StorageKit.app
+        run: ./build.sh
+      - name: Validate metadata, architecture and ad-hoc signature
+        run: ./scripts/verify_bundle.sh
+      - name: Package test artifact
+        run: |
+          mkdir -p dist
+          ditto -c -k --keepParent 'build/StorageKit.app' 'dist/StorageKit-ci-macos-arm64.zip'
+          shasum -a 256 'dist/StorageKit-ci-macos-arm64.zip' > 'dist/SHA256SUMS.txt'
+      - name: Upload built app for manual testing
+        uses: actions/upload-artifact@v4
+        with:
+          name: StorageKit-ci-macos-arm64
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
