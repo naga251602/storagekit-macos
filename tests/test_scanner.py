@@ -24,7 +24,12 @@ class DiscoveryTests(unittest.TestCase):
         shutil.rmtree(cls.folder)
 
     def setUp(self):
-        self.temp = pathlib.Path(tempfile.mkdtemp(prefix="cleaner-homedir-"))
+        self.temp = pathlib.Path(
+        tempfile.mkdtemp(
+            prefix="cleaner-homedir-",
+            dir=pathlib.Path.home().resolve()
+        )
+    )
         self.home = self.temp / "test-home"
         self.apps = self.home / "Applications"
         self.apps.mkdir(parents=True)
