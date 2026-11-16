@@ -16,7 +16,8 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 # Sparkle is an opt-in, signed-release feature; normal developer builds stay
 # dependency-free. Supply an actual Sparkle.framework and its public EdDSA key
 # to enable. Never distribute an update-enabled build with ad-hoc signing.
-SWIFT_SPARKLE_FLAGS=()
+# Keep link flags non-empty: macOS Bash 3.2 + set -u may fail on empty array expansion.
+SWIFT_LINK_FLAGS=(-framework SwiftUI -framework AppKit)
 SPARKLE_ON=0
 if [[ -n "${STORAGEKIT_SPARKLE_FRAMEWORK:-}" ]]; then
   [[ -d "$STORAGEKIT_SPARKLE_FRAMEWORK" ]] || { echo 'Missing Sparkle.framework' >&2; exit 2; }
@@ -29,7 +30,7 @@ if [[ -n "${STORAGEKIT_SPARKLE_FRAMEWORK:-}" ]]; then
   }
   mkdir -p "$APP/Contents/Frameworks"
   ditto "$STORAGEKIT_SPARKLE_FRAMEWORK" "$APP/Contents/Frameworks/Sparkle.framework"
-  SWIFT_SPARKLE_FLAGS=(-F "$APP/Contents/Frameworks" -framework Sparkle \
+  SWIFT_LINK_FLAGS+=(-F "$APP/Contents/Frameworks" -framework Sparkle \
     -Xlinker -rpath -Xlinker '@executable_path/../Frameworks')
   SPARKLE_ON=1
 fi
@@ -52,7 +53,7 @@ swiftc -O -parse-as-library -target arm64-apple-macosx13.0 \
   app/Views/MainViews.swift \
   app/Views/AdditionalViews.swift \
   -o "$APP/Contents/MacOS/StorageKit" \
-  -framework SwiftUI -framework AppKit "${SWIFT_SPARKLE_FLAGS[@]}"
+  "${SWIFT_LINK_FLAGS[@]}"
 
 if command -v iconutil >/dev/null 2>&1; then
   iconutil -c icns assets/StorageKit.iconset -o "$APP/Contents/Resources/StorageKit.icns"
