@@ -78,6 +78,24 @@ enum ManualSelectionService {
         return panel.runModal() == .OK ? panel.urls : []
     }
 
+    /// A suggested directory is not permission. The user must confirm it in
+    /// the system folder picker; cancellation leaves settings unchanged.
+    @MainActor static func chooseSuggestedReviewFolder(_ name: String) -> String? {
+        guard ["Desktop", "Documents", "Downloads"].contains(name) else { return nil }
+        let suggested = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(name, isDirectory: true).standardizedFileURL
+        let panel = NSOpenPanel()
+        panel.message = "Select the \(name) folder to review in StorageKit. Nothing will be deleted."
+        panel.prompt = "Select for Review"
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.directoryURL = suggested
+        guard panel.runModal() == .OK, let chosen = panel.url?.standardizedFileURL,
+            chosen.path == suggested.path else { return nil }
+        return chosen.path
+    }
+
     @MainActor static func chooseReviewFolders() -> [String] {
         let panel = NSOpenPanel()
         panel.message = "Choose folders whose immediate contents should be shown in Storage Cleanup."

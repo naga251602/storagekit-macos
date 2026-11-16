@@ -2,6 +2,16 @@
 
 **Know what stays. Control what goes.**
 
+<p align="center">
+  <a href="https://github.com/naga251602/storagekit-macos/releases/download/v0.1.0/StorageKit-v0.1.0-macos-arm64.zip"><img src="https://img.shields.io/badge/Download-StorageKit%20v0.1.0-248A66?style=for-the-badge&logo=apple&logoColor=white" alt="Download StorageKit v0.1.0 for Apple Silicon" /></a>
+  <a href="https://github.com/naga251602/storagekit-macos/releases">All releases</a>
+</p>
+
+**First launch:** Choose **Accept Default Settings** or **Customize** to select review folders individually. See [First-run guide](docs/FIRST_RUN.md).
+
+**Auto-updates:** Sparkle requires a signed update feed and notarized release. See [Release and update guide](docs/RELEASES_AND_AUTO_UPDATES.md).
+
+
 StorageKit is a **native macOS application and storage cleanup utility** built with **C++20** (read-only discovery) and **SwiftUI/AppKit** (interface and Trash/recovery operations). It locates installed applications and their related user data, inventories developer runtimes and local AI models, and gives you a path-by-path review **before** moving anything to macOS Trash.
 
 > **Release:** v5.4.1 · **Platform:** macOS 13+ / Apple Silicon (M-series) · **Status:** source build for local use. Native build, full permissions behavior, and real Trash/restore actions must be tested on your Mac. The automated fixture tests do not prove those operations are safe on a live system.

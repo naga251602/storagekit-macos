@@ -50,6 +50,13 @@ struct ContentView: View {
                 }
                 Spacer(minLength: 10)
                 Divider()
+                Button {
+                    NSWorkspace.shared.open(StorageKitLinks.repository)
+                } label: {
+                    Label("View on GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
+                }
+                .buttonStyle(.link)
+                .accessibilityLabel("View StorageKit source on GitHub")
                 Label("Trash only · No permanent deletion", systemImage: "lock.shield")
                     .font(.caption).foregroundStyle(.secondary)
             }

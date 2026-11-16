@@ -36,7 +36,7 @@ final class SettingsStore: ObservableObject {
         reviewFolders = UserDefaults.standard.stringArray(forKey: "reviewFolders.v2") ?? []
         mode =
             SelectionMode(rawValue: UserDefaults.standard.string(forKey: "selectionMode") ?? "") ?? .standard
-        githubRepository = UserDefaults.standard.string(forKey: "githubRepository") ?? ""
+        githubRepository = UserDefaults.standard.string(forKey: "githubRepository") ?? StorageKitLinks.repository.absoluteString
     }
     var validatedRepository: URL? {
         guard let url = URL(string: githubRepository.trimmingCharacters(in: .whitespacesAndNewlines)),

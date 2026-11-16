@@ -204,6 +204,14 @@ struct SettingsView: View {
                 )
                 .font(.caption).foregroundStyle(.secondary)
                 HStack {
+                    Button("View Source on GitHub") {
+                        NSWorkspace.shared.open(StorageKitLinks.repository)
+                    }
+                    Button("Download StorageKit") {
+                        NSWorkspace.shared.open(StorageKitLinks.releases)
+                    }
+                }
+                HStack {
                     Button("Request Feature") {
                         if let url = settings.link("feature") { NSWorkspace.shared.open(url) }
                     }.disabled(settings.link("feature") == nil)
@@ -211,6 +219,20 @@ struct SettingsView: View {
                         if let url = settings.link("bug") { NSWorkspace.shared.open(url) }
                     }.disabled(settings.link("bug") == nil)
                 }
+                Divider()
+                Text("Software Updates").font(.headline)
+                if UpdateService.shared.isConfigured {
+                    Toggle("Check for updates automatically", isOn: Binding(
+                        get: { UpdateService.shared.automaticChecks },
+                        set: { UpdateService.shared.setAutomaticChecks($0) }))
+                    Toggle("Automatically download and install updates", isOn: Binding(
+                        get: { UpdateService.shared.automaticInstalls },
+                        set: { UpdateService.shared.setAutomaticInstalls($0) }))
+                } else {
+                    Text("Automatic updates require a signed release with Sparkle. This development build opens GitHub Releases instead.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Button("Check for Updates…") { UpdateService.shared.checkForUpdates() }
                 Divider()
                 Text("Privacy & Safety").font(.headline)
                 Text(
@@ -235,21 +257,20 @@ struct PermissionsSetupView: View {
     @ObservedObject var settings: SettingsStore
     let onFinish: () -> Void
     @StateObject private var flow = SetupFlowState()
-
-    private let stepNames = ["Welcome", "Choose Folders", "Full Disk Access", "Ready"]
+    private let stages = ["Welcome", "Choose Folders", "Full Disk Access", "Ready"]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 17) {
+        VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 12) {
                 Image(systemName: "internaldrive.fill")
-                    .font(.system(size: 32)).foregroundStyle(.mint)
+                    .font(.system(size: 30)).foregroundStyle(.mint)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("StorageKit").font(.title.bold())
+                    Text("StorageKit Setup").font(.title.bold())
                     Text("Know what stays. Control what goes.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
-                Text("\(flow.step + 1) of \(stepNames.count)")
+                Text("\(flow.step + 1) / 4")
                     .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
             }
             HStack(spacing: 7) {
@@ -259,12 +280,12 @@ struct PermissionsSetupView: View {
                         .frame(height: 5)
                 }
             }
-            Text(stepNames[flow.step]).font(.title2.bold())
+            Text(stages[flow.step]).font(.title2.bold())
             Divider()
             Group {
                 switch flow.step {
                 case 0: welcomeStep
-                case 1: foldersStep
+                case 1: folderStep
                 case 2: fullDiskStep
                 default: readyStep
                 }
@@ -272,108 +293,119 @@ struct PermissionsSetupView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             Divider()
             HStack(spacing: 10) {
-                Text("Change access options later in Settings.")
+                Text("You can change these settings later.")
                     .font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 if flow.step > 0 {
                     Button("Back") { flow.step -= 1 }
                         .buttonStyle(.bordered)
                 }
-                Button(flow.step == 3 ? "Finish Setup" : "Continue") {
-                    if flow.step == 3 {
-                        settings.setupCompleted = true
-                        onFinish()
-                    } else {
-                        flow.step += 1
+                if flow.step > 0 {
+                    Button(flow.step == 3 ? "Finish Setup" : "Continue") {
+                        if flow.step == 3 { finish() } else { flow.step += 1 }
                     }
+                    .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.defaultAction)
                 }
-                .buttonStyle(.borderedProminent)
-                .keyboardShortcut(.defaultAction)
             }
         }
         .padding(28)
-        .frame(width: 660, height: 465)
+        .frame(width: 690, height: 500)
         .interactiveDismissDisabled()
     }
 
+    private func finish() {
+        settings.setupCompleted = true
+        onFinish()
+    }
+
     private var welcomeStep: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Welcome to a clearer Mac.")
+        VStack(alignment: .leading, spacing: 18) {
+            Text("Welcome to StorageKit")
                 .font(.title3.bold())
-            Text(
-                "Discover applications and related files, review developer caches and model storage, and move selected items to macOS Trash with a recovery history."
-            )
-            .font(.callout).fixedSize(horizontal: false, vertical: true)
-            Label("Review exactly what will move before confirming", systemImage: "checkmark.shield")
-            Label("Restore recoverable items from Recently Deleted", systemImage: "arrow.uturn.backward")
-            Label("No automatic cleanup, telemetry or permanent deletion", systemImage: "hand.raised")
-            Text("Nothing changes on your Mac during setup.")
+            Text("Discover installed apps and their files, inspect developer caches, and move selected items to macOS Trash with a recovery history.")
+                .fixedSize(horizontal: false, vertical: true)
+            Label("Files are never removed just by enabling review folders", systemImage: "checkmark.shield")
+            Label("Cleanup always requires confirmation", systemImage: "hand.raised")
+            Label("No sudo access or permanent deletion", systemImage: "lock.shield")
+            HStack(spacing: 12) {
+                Button("Accept Default Settings") {
+                    settings.mode = .standard
+                    settings.reviewFolders = []
+                    finish()
+                }
+                .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction)
+                Button("Customize") { flow.step = 1 }
+                    .buttonStyle(.bordered)
+            }
+            Text("Defaults: Standard Mode, no extra review folders, and no Full Disk Access requirement. Choosing defaults clears previous optional review folders.")
                 .font(.caption).foregroundStyle(.secondary)
         }
     }
 
-    private var foldersStep: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Choose folders to review (optional)")
+    private var folderStep: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Customize folders to review")
                 .font(.title3.bold())
-            Text(
-                "StorageKit can scan ordinary user-accessible files. Choose any additional folders whose immediate contents you want to inspect in Storage Cleanup. macOS may ask for access when those folders are opened."
-            )
-            .font(.callout).fixedSize(horizontal: false, vertical: true)
-            Button("Choose Review Folders...") {
+            Text("Each folder must be confirmed separately in macOS's folder picker. Selected folders show only their immediate contents in Storage Cleanup, all unchecked.")
+                .font(.callout).fixedSize(horizontal: false, vertical: true)
+            ForEach(["Desktop", "Documents", "Downloads"], id: \.self) { name in
+                let path = FileManager.default.homeDirectoryForCurrentUser
+                    .appendingPathComponent(name, isDirectory: true).path
+                HStack(spacing: 10) {
+                    Image(systemName: "folder").foregroundStyle(.secondary)
+                    Text(name).frame(width: 105, alignment: .leading)
+                    Spacer()
+                    Text(settings.reviewFolders.contains(path) ? "Selected for review" : "Not selected")
+                        .font(.caption).foregroundStyle(.secondary)
+                    if settings.reviewFolders.contains(path) {
+                        Button("Remove") {
+                            settings.reviewFolders.removeAll { $0 == path }
+                        }
+                    } else {
+                        Button("Choose Folder…") {
+                            if let chosen = ManualSelectionService.chooseSuggestedReviewFolder(name) {
+                                settings.addReviewFolders([chosen])
+                            }
+                        }
+                    }
+                }
+            }
+            Divider()
+            Button("Add Another Folder…") {
                 settings.addReviewFolders(ManualSelectionService.chooseReviewFolders())
             }
-            .buttonStyle(.bordered)
-            Text("\(settings.reviewFolders.count) folders selected")
+            Text("\(settings.reviewFolders.count) folders selected. Folder selection is not a grant of Full Disk Access.")
                 .font(.caption).foregroundStyle(.secondary)
-            ForEach(settings.reviewFolders.prefix(3), id: \.self) { path in
-                Text(path).font(.caption.monospaced()).lineLimit(1)
-                    .truncationMode(.middle).textSelection(.enabled)
-            }
-            Text(
-                "You can continue without selecting anything. Selecting a folder does not grant Full Disk Access."
-            )
-            .font(.caption).foregroundStyle(.secondary)
         }
     }
 
     private var fullDiskStep: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Full Disk Access (optional)")
+            Text("Full Disk Access is optional")
                 .font(.title3.bold())
-            Text(
-                "Some app data is protected by macOS. To grant broader inspection access, open System Settings → Privacy & Security → Full Disk Access and manually enable StorageKit. macOS controls this permission; StorageKit cannot grant or reliably detect it on its own."
-            )
-            .font(.callout).fixedSize(horizontal: false, vertical: true)
+            Text("For additional protected user data, macOS requires you to enable StorageKit manually in System Settings → Privacy & Security → Full Disk Access. The app cannot grant or confirm this permission automatically.")
+                .fixedSize(horizontal: false, vertical: true)
             Button("Open Full Disk Access Settings") {
                 settings.openFullDiskAccessSettings()
             }
             .buttonStyle(.bordered)
-            Label("A restart may be needed after changing access.", systemImage: "arrow.clockwise")
+            Label("Restart StorageKit after changing privacy permissions.", systemImage: "arrow.clockwise")
                 .font(.caption).foregroundStyle(.secondary)
-            Text(
-                "You can skip this step and grant access later in Settings. Protected system paths remain blocked either way."
-            )
-            .font(.caption).foregroundStyle(.secondary)
+            Text("Continue to skip. macOS system-protected files always remain blocked.")
+                .font(.caption).foregroundStyle(.secondary)
         }
     }
 
     private var readyStep: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("You're ready to explore.")
+            Text("Ready to explore")
                 .font(.title3.bold())
-            Label("Application cleanup: preview all selected paths", systemImage: "app")
-            Label(
-                "Developer cleanup: explicitly choose caches, model stores or runtime folders",
-                systemImage: "chevron.left.forwardslash.chevron.right")
-            Label(
-                "Recently Deleted: restore files while they remain in Trash",
-                systemImage: "clock.arrow.circlepath")
-            Text(
-                "Homebrew packages and individual Ollama model manifests require their own manager. StorageKit will not bypass macOS protection or empty Trash."
-            )
-            .font(.callout).foregroundStyle(.secondary)
-            Text("Finish Setup starts the application scan.")
+            Label("\(settings.reviewFolders.count) optional folders selected for review", systemImage: "folder")
+            Label("Standard or Advanced: \(settings.mode.rawValue)", systemImage: "slider.horizontal.3")
+            Label("Every move to Trash requires an exact-path confirmation", systemImage: "checkmark.shield")
+            Text("Finish Setup starts application discovery. The setup can be reopened from Settings.")
                 .font(.caption).foregroundStyle(.secondary)
         }
     }
@@ -398,8 +430,11 @@ struct PermissionsSetupView: View {
                         }
                     }
                     Button("View on GitHub") {
-                        if let link = settings.link("github") { NSWorkspace.shared.open(link) }
-                    }.disabled(settings.link("github") == nil)
+                        NSWorkspace.shared.open(StorageKitLinks.repository)
+                    }
+                    Button("Check for Updates…") {
+                        UpdateService.shared.checkForUpdates()
+                    }
                 }
             }
     }
