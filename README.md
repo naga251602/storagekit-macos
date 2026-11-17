@@ -16,6 +16,21 @@ StorageKit is a **native macOS application and storage cleanup utility** built w
 
 > **Release:** v5.4.1 · **Platform:** macOS 13+ / Apple Silicon (M-series) · **Status:** source build for local use. Native build, full permissions behavior, and real Trash/restore actions must be tested on your Mac. The automated fixture tests do not prove those operations are safe on a live system.
 
+## Table of contents
+
+- [Screenshots](#screenshots)
+- [Why it exists](#why-it-exists)
+- [Features](#features)
+- [Installation & first launch](#installation--first-launch)
+  - [Welcome & permissions](#2--welcome--permissions)
+- [Application cleanup workflow](#application-cleanup-workflow)
+- [Storage Cleanup](#storage-cleanup)
+- [Developer Tools & Models](#developer-tools--models)
+- [Recently Deleted / restoring files](#recently-deleted--restoring-files)
+- [Privacy and safety](#privacy-and-safety)
+- [Development](#development)
+- [Contributing, GitHub and licensing](#contributing-github-and-licensing)
+
 ## Screenshots
 
 A quick look at StorageKit's application discovery, review-before-removal workflow, and recovery experience.
